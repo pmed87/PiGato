@@ -1,29 +1,57 @@
-# OS INSTALL
+# Pi-GATO Build Guide
 
-## Flash Raspberry Pi OS Lite
+## Clean Install + Full Working System Setup
 
-Use Raspberry Pi Imager:
+Platform:
 
-Recommended Image:
-
+* Raspberry Pi 5
 * Raspberry Pi OS Lite (64-bit)
+* USB Numpad
+* MPV
+* Python EVDEV IPC Playback Engine
 
-NO desktop environment.
+This guide installs a fully working Pi-GATO system from scratch.
 
 ---
 
-# FIRST BOOT SETUP
+# 1. FLASH THE OS
+
+Use Raspberry Pi Imager.
+
+Install:
+
+```text id="p1xk4u"
+Raspberry Pi OS Lite (64-bit)
+```
+
+DO NOT install desktop OS.
+
+Pi-GATO is designed for:
+
+* low overhead
+* direct GPU rendering
+* terminal operation
+
+---
+
+# 2. FIRST BOOT
+
+Login to Raspberry Pi.
 
 Update system:
 
-```bash
+```bash id="m8xq1z"
 sudo apt update
 sudo apt upgrade -y
 ```
 
-Install required packages:
+---
 
-```bash
+# 3. INSTALL REQUIRED PACKAGES
+
+Install MPV + Python tools:
+
+```bash id="s2z0ov"
 sudo apt install -y \
 mpv \
 python3 \
@@ -32,43 +60,80 @@ python3-venv \
 ffmpeg
 ```
 
+Purpose:
+
+* mpv = video engine
+* python3 = scripting
+* pip = Python package manager
+* venv = isolated Python environment
+* ffmpeg = video utilities
+
 ---
 
-# CREATE PROJECT STRUCTURE
+# 4. CREATE PROJECT FOLDERS
 
-```bash
+Create Pi-GATO directory structure:
+
+```bash id="i4a8wr"
 mkdir -p ~/pigato
 mkdir -p ~/pigato/modes
+mkdir -p ~/pigato/Safety
 mkdir -p ~/pigato/backups
+
+mkdir -p ~/pigato/"Bank A"
+mkdir -p ~/pigato/"Bank B"
+mkdir -p ~/pigato/"Bank C"
+mkdir -p ~/pigato/"Bank D"
+mkdir -p ~/pigato/"Bank E"
 ```
 
 ---
 
-# CREATE PYTHON VENV
+# 5. CREATE PYTHON ENVIRONMENT
 
-```bash
+Create isolated Python environment:
+
+```bash id="n7c2dk"
 python3 -m venv ~/pigato/venv
 ```
 
-Activate:
+Activate environment:
 
-```bash
+```bash id="e5r9fa"
 source ~/pigato/venv/bin/activate
 ```
 
-Install EVDEV:
+You should now see:
 
-```bash
-pip install evdev
+```text id="x9m2lt"
+(venv)
 ```
+
+at beginning of terminal prompt.
 
 ---
 
-# VERIFY NUMPAD
+# 6. INSTALL EVDEV
 
-List devices:
+Install keyboard input library:
 
-```bash
+```bash id="r1v8sq"
+pip install evdev
+```
+
+Purpose:
+
+* reads numpad directly
+* bypasses desktop keyboard systems
+* ultra low latency
+
+---
+
+# 7. VERIFY NUMPAD
+
+Run:
+
+```bash id="u0j4my"
 python3 - <<EOF
 from evdev import InputDevice, list_devices
 
@@ -78,204 +143,624 @@ for path in list_devices():
 EOF
 ```
 
-Expected device:
+Find your numpad device.
 
-```text
+Expected example:
+
+```text id="v7k1oh"
 Hailuck Co.,Ltd USB KEYBOARD Keyboard
 ```
 
 ---
 
-# VIDEO BANK STRUCTURE
+# 8. CREATE SAFETY CLIPS
 
-## Final Working Structure
+Inside:
 
-```text
-~/pigato/
-
-    Bank A/
-    Bank B/
-    Bank C/
-    Bank D/
-    Bank E/
-
-    Safety/
-
-    modes/
+```text id="z4f7qw"
+~/pigato/Safety/
 ```
 
----
+Add:
 
-# FILE NAMING SYSTEM
-
-The GoldenScript searches ONLY for numeric prefixes.
-
-Examples:
-
-```text
-01.mp4
-02.mp4
-03 - wizard.mp4
-04 - orbit.mp4
-05 - UFO.mp4
+```text id="w2a6ev"
+SafetyClipX.mp4
+BLACK.mp4
 ```
-
-ONLY the leading number matters.
-
-This became one of the most important successful architecture changes.
-
----
-
-# SAFETY CLIP
-
-Safety clip location:
-
-```text
-~/pigato/Safety/SafetyClipX.mp4
-```
-
-Fallback black clip:
-
-```text
-~/pigato/Safety/BLACK.mp4
-```
-
----
-
-# FIRST SUCCESSFUL MPV IPC TEST
-
-## Start MPV
-
-```bash
-mpv \
---idle=yes \
---fullscreen \
---keep-open=yes \
---input-ipc-server=/tmp/mpvsocket
-```
-
-## Test IPC
-
-```bash
-echo '{ "command": ["loadfile", "/path/to/video.mp4"] }' \
-| socat - /tmp/mpvsocket
-```
-
-This validated:
-
-* persistent mpv engine
-* IPC control
-* live clip loading
-
-This was the birth of Pi-GATO architecture.
-
----
-
-# AUDIO FAILURE ERA
-
-Initial problems:
-
-* CUDA errors
-* Vulkan errors
-* ALSA failures
-* Pipewire failures
-* JACK failures
-
-Final successful solution:
-
-DISABLE ALL AUDIO.
-
-Final stable MPV flags:
-
-```bash
---no-audio
---hwdec=no
-```
-
-This removed:
-
-* CUDA probing
-* Vulkan decode failures
-* ALSA device crashes
-* Pipewire hangs
-
-This was a MAJOR stabilization milestone.
-
----
-
-# WATCHDOG SYSTEM
 
 Purpose:
 
-* monitor mpv
-* restart dead playback engine
-* recover from hangs
-
-Watchdog became:
-
-* a safety layer
-  NOT
-* the primary controller
-
-Important architectural realization.
+* emergency fallback
+* visual protection
+* live performance recovery
 
 ---
 
-# MODE SYSTEM
+# 9. ADD VIDEO FILES
 
-Final structure:
+Each bank folder must contain:
 
-```text
-clean_mode.py
-fx_mode.py
-dev_mode.py
-recovery_mode.py
+```text id="o7s9uc"
+01
+02
+03
+04
+05
+06
+07
+08
+09
 ```
 
-All derived from:
+IMPORTANT:
 
-```text
-numpad.py
+The script ONLY checks the NUMBER PREFIX.
+
+Examples:
+
+```text id="d6w1nk"
+01.mp4
+01 - worship.mp4
+01 - UFO footage.mp4
 ```
 
-Which became the conceptual "base engine."
+ALL valid.
 
 ---
 
-# LAUNCHER ARCHITECTURE
+# 10. CREATE WATCHDOG
 
-Launcher responsibilities:
+Create:
 
-* kill stale processes
-* kill stale sockets
-* boot mpv
-* boot watchdog
-* boot selected mode
-* EXIT COMPLETELY
-
-Critical final discovery:
-
-launcher MUST die after mode selection.
-
-Final fix:
-
-```python
-os._exit(0)
+```bash id="y5n8tb"
+nano ~/pigato/watchdog.py
 ```
 
-Without this:
+Paste:
 
-* multiple keypad readers existed
-* launcher hijacked mode controls
-* phantom relaunches occurred
+```python id="u3q9hv"
+#!/usr/bin/env python3
 
-This was one of the most important debugging discoveries in the project.
+import os
+import time
+import subprocess
+
+SOCKET = "/tmp/mpvsocket"
+
+while True:
+
+    if not os.path.exists(SOCKET):
+
+        print("WATCHDOG: SOCKET LOST")
+
+    time.sleep(5)
+```
+
+Save:
+CTRL+O
+ENTER
+
+Exit:
+CTRL+X
+
+Make executable:
+
+```bash id="j8e4fa"
+chmod +x ~/pigato/watchdog.py
+```
 
 ---
 
-# FINAL MODE SELECTOR
+# 11. CREATE GOLDENSCRIPT
 
-## Launcher Controls
+Create:
+
+```bash id="f2t6mo"
+nano ~/pigato/modes/clean_mode.py
+```
+
+Paste:
+
+```python id="h4x8ul"
+#!/usr/bin/env python3
+
+import os
+import time
+import json
+import socket
+import evdev
+
+from evdev import InputDevice, list_devices
+
+# ==========================================
+# CONFIG
+# ==========================================
+
+BASE_DIR = os.path.expanduser("~/pigato")
+
+SOCKET_PATH = "/tmp/mpvsocket"
+
+BANKS = ["A", "B", "C", "D", "E"]
+
+current_bank_index = 0
+
+# ==========================================
+# CLIP MAP
+# ==========================================
+
+KEY_TO_CLIP = {
+
+    "KEY_KP7": "01",
+    "KEY_KP8": "02",
+    "KEY_KP9": "03",
+
+    "KEY_KP4": "04",
+    "KEY_KP5": "05",
+    "KEY_KP6": "06",
+
+    "KEY_KP1": "07",
+    "KEY_KP2": "08",
+    "KEY_KP3": "09",
+}
+
+# ==========================================
+# FIND NUMPAD
+# ==========================================
+
+def find_device():
+
+    for path in list_devices():
+
+        dev = InputDevice(path)
+
+        if dev.name == "Hailuck Co.,Ltd USB KEYBOARD Keyboard":
+
+            return dev
+
+    return None
+
+# ==========================================
+# CURRENT BANK
+# ==========================================
+
+def current_bank():
+
+    return BANKS[current_bank_index]
+
+# ==========================================
+# FIND CLIP
+# ==========================================
+
+def find_clip(number):
+
+    path = os.path.join(
+        BASE_DIR,
+        f"Bank {current_bank()}"
+    )
+
+    if not os.path.exists(path):
+        return None
+
+    for f in sorted(os.listdir(path)):
+
+        if f.startswith(number) and f.endswith(".mp4"):
+
+            return os.path.join(path, f)
+
+    return None
+
+# ==========================================
+# SEND TO MPV
+# ==========================================
+
+def send_command(command):
+
+    try:
+
+        s = socket.socket(socket.AF_UNIX)
+
+        s.connect(SOCKET_PATH)
+
+        s.send(
+            (json.dumps(command) + "\n").encode()
+        )
+
+        s.close()
+
+        return True
+
+    except Exception as e:
+
+        print("\nMPV IPC ERROR")
+        print(e)
+
+        return False
+
+# ==========================================
+# PLAY CLIP
+# ==========================================
+
+def play_clip(path):
+
+    if not path:
+
+        print("\nCLIP NOT FOUND")
+        return
+
+    print("\nPLAY:")
+    print(os.path.basename(path))
+
+    cmd = {
+
+        "command": [
+            "loadfile",
+            path,
+            "replace"
+        ]
+    }
+
+    send_command(cmd)
+
+# ==========================================
+# SAFETY CLIP
+# ==========================================
+
+def play_safety():
+
+    path = os.path.join(
+        BASE_DIR,
+        "Safety",
+        "SafetyClipX.mp4"
+    )
+
+    play_clip(path)
+
+# ==========================================
+# MAIN
+# ==========================================
+
+def main():
+
+    dev = find_device()
+
+    if not dev:
+
+        print("NUMPAD NOT FOUND")
+        return
+
+    print("\nPiGATO V11")
+    print(f"Device: {dev.name}")
+    print(f"Bank: {current_bank()}")
+
+    global current_bank_index
+
+    for event in dev.read_loop():
+
+        if event.type != evdev.ecodes.EV_KEY:
+            continue
+
+        if event.value != 1:
+            continue
+
+        key = evdev.categorize(event).keycode
+
+        if isinstance(key, list):
+            key = key[0]
+
+        # ==================================
+        # NEXT BANK
+        # ==================================
+
+        if key == "KEY_KPSLASH":
+
+            current_bank_index += 1
+
+            if current_bank_index >= len(BANKS):
+                current_bank_index = 0
+
+            print(f"\nBANK {current_bank()}")
+
+            continue
+
+        # ==================================
+        # PREVIOUS BANK
+        # ==================================
+
+        if key == "KEY_NUMLOCK":
+
+            current_bank_index -= 1
+
+            if current_bank_index < 0:
+                current_bank_index = len(BANKS) - 1
+
+            print(f"\nBANK {current_bank()}")
+
+            continue
+
+        # ==================================
+        # SAFETY CLIP
+        # ==================================
+
+        if key == "KEY_KPASTERISK":
+
+            print("\nSAFETY CLIP")
+
+            play_safety()
+
+            continue
+
+        # ==================================
+        # PLAY CLIPS
+        # ==================================
+
+        if key in KEY_TO_CLIP:
+
+            clip_num = KEY_TO_CLIP[key]
+
+            path = find_clip(clip_num)
+
+            play_clip(path)
+
+# ==========================================
+
+if __name__ == "__main__":
+    main()
+```
+
+Save:
+CTRL+O
+ENTER
+
+Exit:
+CTRL+X
+
+Make executable:
+
+```bash id="g0v2ld"
+chmod +x ~/pigato/modes/clean_mode.py
+```
+
+---
+
+# 12. COPY GOLDENSCRIPT TO OTHER MODES
+
+```bash id="l9n6wf"
+cp ~/pigato/modes/clean_mode.py \
+~/pigato/modes/fx_mode.py
+
+cp ~/pigato/modes/clean_mode.py \
+~/pigato/modes/dev_mode.py
+
+cp ~/pigato/modes/clean_mode.py \
+~/pigato/modes/recovery_mode.py
+```
+
+---
+
+# 13. CREATE LAUNCHER
+
+Create:
+
+```bash id="q7e3ju"
+nano ~/pigato/launcher.py
+```
+
+Paste:
+
+```python id="m6f1zo"
+#!/usr/bin/env python3
+
+import os
+import time
+import subprocess
+import evdev
+
+from evdev import InputDevice, list_devices
+
+HOME = os.path.expanduser("~")
+
+VENV = os.path.join(
+    HOME,
+    "pigato/venv/bin/python3"
+)
+
+SOCKET = "/tmp/mpvsocket"
+
+MODES = {
+
+    "KEY_KP1": (
+        "NORMAL MODE",
+        os.path.join(HOME, "pigato/modes/clean_mode.py")
+    ),
+
+    "KEY_KP2": (
+        "FX MODE",
+        os.path.join(HOME, "pigato/modes/fx_mode.py")
+    ),
+
+    "KEY_KP3": (
+        "DEV MODE",
+        os.path.join(HOME, "pigato/modes/dev_mode.py")
+    ),
+
+    "KEY_KP0": (
+        "RECOVERY MODE",
+        os.path.join(HOME, "pigato/modes/recovery_mode.py")
+    ),
+}
+
+def find_device():
+
+    for path in list_devices():
+
+        dev = InputDevice(path)
+
+        if dev.name == "Hailuck Co.,Ltd USB KEYBOARD Keyboard":
+
+            return dev
+
+    return None
+
+def kill_all():
+
+    subprocess.call(["pkill", "-f", "clean_mode.py"])
+    subprocess.call(["pkill", "-f", "fx_mode.py"])
+    subprocess.call(["pkill", "-f", "dev_mode.py"])
+    subprocess.call(["pkill", "-f", "recovery_mode.py"])
+    subprocess.call(["pkill", "-f", "watchdog.py"])
+
+    subprocess.call(["pkill", "-9", "mpv"])
+
+    time.sleep(1)
+
+    if os.path.exists(SOCKET):
+
+        os.remove(SOCKET)
+
+def start_mpv():
+
+    subprocess.Popen([
+
+        "mpv",
+
+        "--fullscreen",
+        "--keep-open=yes",
+        "--idle=yes",
+        "--loop-file=inf",
+
+        "--input-ipc-server=" + SOCKET,
+
+        "--vo=gpu",
+        "--gpu-context=drm",
+
+        "--hwdec=no",
+
+        "--no-audio",
+
+        "--msg-level=all=warn",
+    ])
+
+    for _ in range(50):
+
+        if os.path.exists(SOCKET):
+            return True
+
+        time.sleep(0.1)
+
+    return False
+
+def start_watchdog():
+
+    subprocess.Popen([
+        VENV,
+        os.path.join(HOME, "pigato/watchdog.py")
+    ])
+
+def start_mode(path):
+
+    subprocess.Popen([
+        VENV,
+        path
+    ])
+
+def main():
+
+    os.system("clear")
+
+    print("\nSEARCHING FOR NUMPAD...\n")
+
+    dev = find_device()
+
+    if not dev:
+
+        print("NUMPAD NOT FOUND")
+        return
+
+    print(f"FOUND DEVICE:\n{dev.name}\n")
+
+    print("\n===================================")
+    print("         PI-GATO SYSTEM")
+    print("===================================\n")
+
+    print("NORMAL MODE   : KP1")
+    print("FX MODE       : KP2")
+    print("DEV MODE      : KP3")
+    print("RECOVERY MODE : KP0\n")
+
+    print("WAITING FOR MODE SELECTION...\n")
+
+    for event in dev.read_loop():
+
+        if event.type != evdev.ecodes.EV_KEY:
+            continue
+
+        if event.value != 1:
+            continue
+
+        key = evdev.categorize(event).keycode
+
+        if isinstance(key, list):
+            key = key[0]
+
+        if key in MODES:
+
+            mode_name, mode_script = MODES[key]
+
+            print(f"\nLAUNCHING {mode_name}...\n")
+
+            kill_all()
+
+            ok = start_mpv()
+
+            if not ok:
+
+                print("MPV FAILED")
+                return
+
+            start_watchdog()
+
+            start_mode(mode_script)
+
+            os._exit(0)
+
+if __name__ == "__main__":
+    main()
+```
+
+Save:
+CTRL+O
+ENTER
+
+Exit:
+CTRL+X
+
+Make executable:
+
+```bash id="s5r0mw"
+chmod +x ~/pigato/launcher.py
+```
+
+---
+
+# 14. START PI-GATO
+
+Activate venv:
+
+```bash id="y3k8nt"
+source ~/pigato/venv/bin/activate
+```
+
+Launch:
+
+```bash id="h7u1eq"
+python3 ~/pigato/launcher.py
+```
+
+---
+
+# 15. FINAL CONTROLS
+
+## Launcher
 
 | Key | Action        |
 | --- | ------------- |
@@ -286,190 +771,46 @@ This was one of the most important debugging discoveries in the project.
 
 ---
 
-# FINAL PLAYBACK CONTROLS
+## Playback
 
-## Golden Layout
-
-| Key     | Action         |
-| ------- | -------------- |
-| KP7     | Clip 01        |
-| KP8     | Clip 02        |
-| KP9     | Clip 03        |
-| KP4     | Clip 04        |
-| KP5     | Clip 05        |
-| KP6     | Clip 06        |
-| KP1     | Clip 07        |
-| KP2     | Clip 08        |
-| KP3     | Clip 09        |
-| NumLock | Previous Bank  |
-| /       | Next Bank      |
-| *       | Reserved       |
-| -       | Safety Clip    |
-| Enter   | Save Timestamp |
+| Key     | Action        |
+| ------- | ------------- |
+| KP7     | Clip 01       |
+| KP8     | Clip 02       |
+| KP9     | Clip 03       |
+| KP4     | Clip 04       |
+| KP5     | Clip 05       |
+| KP6     | Clip 06       |
+| KP1     | Clip 07       |
+| KP2     | Clip 08       |
+| KP3     | Clip 09       |
+| NumLock | Previous Bank |
+| /       | Next Bank     |
+| *       | Safety Clip   |
 
 ---
 
-# GOLDENSCRIPT
+# FINAL NOTES
 
-## Canonical Stable Version
+This architecture uses:
 
-Name:
+* ONE persistent MPV engine
+* ONE IPC socket
+* ONE active mode script
+* ONE launcher lifecycle
 
-```text
-PiGATO_V11_GoldenScript
-```
+This prevents:
 
-Features:
+* duplicate keypad readers
+* phantom launches
+* unstable playback
+* socket conflicts
 
-* persistent mpv engine
-* IPC playback
-* dynamic filename resolution
-* instant clip triggering
-* bank switching
-* safety clip
-* timestamp save
-* no audio system dependency
-* watchdog recovery
-* launcher isolation
-* persistent fullscreen playback
+The system is designed for:
 
-This became the first TRUE stable architecture.
+* live visual performance
+* instant playback
+* modular expansion
+* Raspberry Pi deployment
 
----
-
-# MAJOR ARCHITECTURAL DISCOVERIES
-
-## 1. Persistent MPV Is Mandatory
-
-Restarting mpv for every clip was unstable.
-
-Correct solution:
-ONE persistent mpv instance.
-
----
-
-## 2. IPC Is The Core
-
-Socket-driven playback became the heart of the system.
-
----
-
-## 3. Launcher Must Exit
-
-Multiple input readers caused catastrophic conflicts.
-
----
-
-## 4. Audio Is Unnecessary
-
-Removing audio massively increased system stability.
-
----
-
-## 5. Filename Prefix Matching Is Superior
-
-Matching:
-01
-02
-03
-
-instead of exact filenames allowed:
-
-* easier file replacement
-* human-readable names
-* flexible banks
-
-Huge usability improvement.
-
----
-
-# KNOWN STABLE MPV FLAGS
-
-```bash
-mpv \
---fullscreen \
---keep-open=yes \
---idle=yes \
---loop-file=inf \
---input-ipc-server=/tmp/mpvsocket \
---vo=gpu \
---gpu-context=drm \
---hwdec=no \
---no-audio \
---msg-level=all=warn
-```
-
----
-
-# RECOMMENDED BACKUP STRATEGY
-
-Backup:
-
-```text
-~/pigato/
-```
-
-AND:
-
-* exported SD card image
-* GitHub repository
-* versioned GoldenScripts
-
-Recommended:
-
-```text
-backups/
-    PiGATO_V8.py
-    PiGATO_V9.py
-    PiGATO_V10.py
-    PiGATO_V11_GoldenScript.py
-```
-
----
-
-# FUTURE ROADMAP
-
-Planned features:
-
-* true preload system
-* dual-deck playback
-* transitions
-* shader FX
-* clip quantization
-* MIDI support
-* OSC support
-* performance recording
-* network sync
-* emergency playback queue
-* visual overlays
-* clip metadata system
-
----
-
-# PHILOSOPHY
-
-Pi-GATO evolved from:
-
-"play clips from keypad"
-
-into:
-
-"a modular live cinema operating system."
-
-The most important realization:
-
-The system became stable ONLY after:
-
-* process ownership became unified
-* mpv became persistent
-* launcher became disposable
-* mode scripts became authoritative
-
----
-
-# FINAL PRINCIPLE
-
-ONE SCRIPT.
-ONE SOCKET.
-ONE ENGINE.
-ONE TRUTH.
+Pi-GATO V11 became the first stable GOLDENSCRIPT architecture.

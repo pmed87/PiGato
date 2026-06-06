@@ -1,0 +1,475 @@
+# OS INSTALL
+
+## Flash Raspberry Pi OS Lite
+
+Use Raspberry Pi Imager:
+
+Recommended Image:
+
+* Raspberry Pi OS Lite (64-bit)
+
+NO desktop environment.
+
+---
+
+# FIRST BOOT SETUP
+
+Update system:
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+```
+
+Install required packages:
+
+```bash
+sudo apt install -y \
+mpv \
+python3 \
+python3-pip \
+python3-venv \
+ffmpeg
+```
+
+---
+
+# CREATE PROJECT STRUCTURE
+
+```bash
+mkdir -p ~/pigato
+mkdir -p ~/pigato/modes
+mkdir -p ~/pigato/backups
+```
+
+---
+
+# CREATE PYTHON VENV
+
+```bash
+python3 -m venv ~/pigato/venv
+```
+
+Activate:
+
+```bash
+source ~/pigato/venv/bin/activate
+```
+
+Install EVDEV:
+
+```bash
+pip install evdev
+```
+
+---
+
+# VERIFY NUMPAD
+
+List devices:
+
+```bash
+python3 - <<EOF
+from evdev import InputDevice, list_devices
+
+for path in list_devices():
+    dev = InputDevice(path)
+    print(dev.name)
+EOF
+```
+
+Expected device:
+
+```text
+Hailuck Co.,Ltd USB KEYBOARD Keyboard
+```
+
+---
+
+# VIDEO BANK STRUCTURE
+
+## Final Working Structure
+
+```text
+~/pigato/
+
+    Bank A/
+    Bank B/
+    Bank C/
+    Bank D/
+    Bank E/
+
+    Safety/
+
+    modes/
+```
+
+---
+
+# FILE NAMING SYSTEM
+
+The GoldenScript searches ONLY for numeric prefixes.
+
+Examples:
+
+```text
+01.mp4
+02.mp4
+03 - wizard.mp4
+04 - orbit.mp4
+05 - UFO.mp4
+```
+
+ONLY the leading number matters.
+
+This became one of the most important successful architecture changes.
+
+---
+
+# SAFETY CLIP
+
+Safety clip location:
+
+```text
+~/pigato/Safety/SafetyClipX.mp4
+```
+
+Fallback black clip:
+
+```text
+~/pigato/Safety/BLACK.mp4
+```
+
+---
+
+# FIRST SUCCESSFUL MPV IPC TEST
+
+## Start MPV
+
+```bash
+mpv \
+--idle=yes \
+--fullscreen \
+--keep-open=yes \
+--input-ipc-server=/tmp/mpvsocket
+```
+
+## Test IPC
+
+```bash
+echo '{ "command": ["loadfile", "/path/to/video.mp4"] }' \
+| socat - /tmp/mpvsocket
+```
+
+This validated:
+
+* persistent mpv engine
+* IPC control
+* live clip loading
+
+This was the birth of Pi-GATO architecture.
+
+---
+
+# AUDIO FAILURE ERA
+
+Initial problems:
+
+* CUDA errors
+* Vulkan errors
+* ALSA failures
+* Pipewire failures
+* JACK failures
+
+Final successful solution:
+
+DISABLE ALL AUDIO.
+
+Final stable MPV flags:
+
+```bash
+--no-audio
+--hwdec=no
+```
+
+This removed:
+
+* CUDA probing
+* Vulkan decode failures
+* ALSA device crashes
+* Pipewire hangs
+
+This was a MAJOR stabilization milestone.
+
+---
+
+# WATCHDOG SYSTEM
+
+Purpose:
+
+* monitor mpv
+* restart dead playback engine
+* recover from hangs
+
+Watchdog became:
+
+* a safety layer
+  NOT
+* the primary controller
+
+Important architectural realization.
+
+---
+
+# MODE SYSTEM
+
+Final structure:
+
+```text
+clean_mode.py
+fx_mode.py
+dev_mode.py
+recovery_mode.py
+```
+
+All derived from:
+
+```text
+numpad.py
+```
+
+Which became the conceptual "base engine."
+
+---
+
+# LAUNCHER ARCHITECTURE
+
+Launcher responsibilities:
+
+* kill stale processes
+* kill stale sockets
+* boot mpv
+* boot watchdog
+* boot selected mode
+* EXIT COMPLETELY
+
+Critical final discovery:
+
+launcher MUST die after mode selection.
+
+Final fix:
+
+```python
+os._exit(0)
+```
+
+Without this:
+
+* multiple keypad readers existed
+* launcher hijacked mode controls
+* phantom relaunches occurred
+
+This was one of the most important debugging discoveries in the project.
+
+---
+
+# FINAL MODE SELECTOR
+
+## Launcher Controls
+
+| Key | Action        |
+| --- | ------------- |
+| KP1 | NORMAL MODE   |
+| KP2 | FX MODE       |
+| KP3 | DEV MODE      |
+| KP0 | RECOVERY MODE |
+
+---
+
+# FINAL PLAYBACK CONTROLS
+
+## Golden Layout
+
+| Key     | Action         |
+| ------- | -------------- |
+| KP7     | Clip 01        |
+| KP8     | Clip 02        |
+| KP9     | Clip 03        |
+| KP4     | Clip 04        |
+| KP5     | Clip 05        |
+| KP6     | Clip 06        |
+| KP1     | Clip 07        |
+| KP2     | Clip 08        |
+| KP3     | Clip 09        |
+| NumLock | Previous Bank  |
+| /       | Next Bank      |
+| *       | Reserved       |
+| -       | Safety Clip    |
+| Enter   | Save Timestamp |
+
+---
+
+# GOLDENSCRIPT
+
+## Canonical Stable Version
+
+Name:
+
+```text
+PiGATO_V11_GoldenScript
+```
+
+Features:
+
+* persistent mpv engine
+* IPC playback
+* dynamic filename resolution
+* instant clip triggering
+* bank switching
+* safety clip
+* timestamp save
+* no audio system dependency
+* watchdog recovery
+* launcher isolation
+* persistent fullscreen playback
+
+This became the first TRUE stable architecture.
+
+---
+
+# MAJOR ARCHITECTURAL DISCOVERIES
+
+## 1. Persistent MPV Is Mandatory
+
+Restarting mpv for every clip was unstable.
+
+Correct solution:
+ONE persistent mpv instance.
+
+---
+
+## 2. IPC Is The Core
+
+Socket-driven playback became the heart of the system.
+
+---
+
+## 3. Launcher Must Exit
+
+Multiple input readers caused catastrophic conflicts.
+
+---
+
+## 4. Audio Is Unnecessary
+
+Removing audio massively increased system stability.
+
+---
+
+## 5. Filename Prefix Matching Is Superior
+
+Matching:
+01
+02
+03
+
+instead of exact filenames allowed:
+
+* easier file replacement
+* human-readable names
+* flexible banks
+
+Huge usability improvement.
+
+---
+
+# KNOWN STABLE MPV FLAGS
+
+```bash
+mpv \
+--fullscreen \
+--keep-open=yes \
+--idle=yes \
+--loop-file=inf \
+--input-ipc-server=/tmp/mpvsocket \
+--vo=gpu \
+--gpu-context=drm \
+--hwdec=no \
+--no-audio \
+--msg-level=all=warn
+```
+
+---
+
+# RECOMMENDED BACKUP STRATEGY
+
+Backup:
+
+```text
+~/pigato/
+```
+
+AND:
+
+* exported SD card image
+* GitHub repository
+* versioned GoldenScripts
+
+Recommended:
+
+```text
+backups/
+    PiGATO_V8.py
+    PiGATO_V9.py
+    PiGATO_V10.py
+    PiGATO_V11_GoldenScript.py
+```
+
+---
+
+# FUTURE ROADMAP
+
+Planned features:
+
+* true preload system
+* dual-deck playback
+* transitions
+* shader FX
+* clip quantization
+* MIDI support
+* OSC support
+* performance recording
+* network sync
+* emergency playback queue
+* visual overlays
+* clip metadata system
+
+---
+
+# PHILOSOPHY
+
+Pi-GATO evolved from:
+
+"play clips from keypad"
+
+into:
+
+"a modular live cinema operating system."
+
+The most important realization:
+
+The system became stable ONLY after:
+
+* process ownership became unified
+* mpv became persistent
+* launcher became disposable
+* mode scripts became authoritative
+
+---
+
+# FINAL PRINCIPLE
+
+ONE SCRIPT.
+ONE SOCKET.
+ONE ENGINE.
+ONE TRUTH.
